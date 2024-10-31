@@ -21,16 +21,25 @@ public class WebSecurityConfig {
     @Autowired
     private DataSource dataSource;
 
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeRequests()
-                .antMatchers("/**").permitAll()  // Даем доступ к любому запросу без авторизации
-                .and()
-                .csrf().disable()
-                .cors().disable()
-                .formLogin().disable()  // Отключить стандартную форму авторизации
-                .httpBasic().disable();
+                .authorizeRequests(authorize -> authorize
+                        .antMatchers("/login", "/registration").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/")
+                        .permitAll()
+                )
+                .logout(logout -> logout
+                        .permitAll()
+                )
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.disable());
 
         return http.build();
     }
@@ -38,11 +47,10 @@ public class WebSecurityConfig {
     @Autowired
     @Lazy
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        // Отключаем настройку аутентификации для тестирования
-        // auth.jdbcAuthentication()
-        //         .dataSource(dataSource)
-        //         .passwordEncoder(NoOpPasswordEncoder.getInstance())
-        //         .usersByUsernameQuery("select username, password, active from model_user where username =?")
-        //         .authoritiesByUsernameQuery("select u.username, ur.roles from model_user u inner join user_role ur on u.id_user = ur.user_id where u.username=?");
+        auth.jdbcAuthentication()
+                .dataSource(dataSource)
+                .passwordEncoder(NoOpPasswordEncoder.getInstance())
+                .usersByUsernameQuery("select username, password, active from model_user where username =?")
+                .authoritiesByUsernameQuery("select u.username, ur.roles from model_user u inner join user_role ur on u.id_user = ur.user_id where u.username=?");
     }
 }
